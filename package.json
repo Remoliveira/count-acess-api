@@ -1,0 +1,26 @@
+{
+  "name": "ton-acess-count",
+  "version": "1.0.0",
+  "description": "",
+  "scripts": {
+    "test": "env TS_NODE_COMPILER_OPTIONS='{\"module\": \"commonjs\" }' mocha -r ts-node/register 'src/tests/**/*.spec.ts'"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "ts-node": "^10.7.0",
+    "typescript": "^4.6.3"
+  },
+  "dependencies": {
+    "@types/chai": "^4.3.1",
+    "@types/mocha": "^9.1.0",
+    "@types/sinon": "^10.0.11",
+    "axios": "^0.26.1",
+    "chai": "^4.3.6",
+    "cross-env": "^7.0.3",
+    "mocha": "^9.2.2",
+    "sinon": "^13.0.2",
+    "tslib": "^2.3.1"
+  }
+}
