@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
     "typeRoots": ["./node_modules/@types"],
-    "target": "es2017",
+    "target": "es6",
     "module": "commonjs",
     "moduleResolution": "node",
     "emitDecoratorMetadata": true,
@@ -16,14 +16,15 @@
     "inlineSources": false,
     "alwaysStrict": true,
     "esModuleInterop": true,
-    "baseUrl": "app/src",
+    "baseUrl": "src",
     "outDir": "dist",
     "resolveJsonModule": true,
   },
-  "include": ["app/src/**/*.ts", "app/src/**/*.d.ts"],
-  "exclude": ["node_modules","**/*.spec.ts"],
   "compileOnSave": false,
   "ts-node": {
     "files": true
   },
+  "include": ["src/**/*",  "src/**/*.d.ts", "src/**/*.ts"],
+  "exclude": ["src/**/*.spec.ts"]
 }
+

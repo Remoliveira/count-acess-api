@@ -10,54 +10,6 @@ terraform {
 provider "aws" {
   region = "us-east-2"
 }
-
-# resource "aws_api_gateway_rest_api" "ton_test" {
-#   body = jsonencode({
-#     openapi = "3.0.1"
-#     info = {
-#       title   = "ton_test"
-#       version = "1.0"
-#     }
-#     paths = {
-#       "/ton" = {
-#         get = {
-#           x-amazon-apigateway-integration = {
-#             httpMethod           = "GET"
-#             payloadFormatVersion = "1.0"
-#             type                 = "HTTP_PROXY"
-#             uri                  = "https://ip-ranges.amazonaws.com/ip-ranges.json"
-#           }
-#         }
-#       }
-#     }
-#   })
-
-#   name = "ton_test"
-
-#   endpoint_configuration {
-#     types = ["REGIONAL"]
-#   }
-# }
-
-# resource "aws_api_gateway_deployment" "ton_test" {
-#   rest_api_id = aws_api_gateway_rest_api.ton_test.id
-
-#   triggers = {
-#     redeployment = sha1(jsonencode(aws_api_gateway_rest_api.ton_test.body))
-#   }
-
-#   lifecycle {
-#     create_before_destroy = true
-#   }
-# }
-
-# resource "aws_api_gateway_stage" "ton_test" {
-#   deployment_id = aws_api_gateway_deployment.ton_test.id
-#   rest_api_id   = aws_api_gateway_rest_api.ton_test.id
-#   stage_name    = "ton_test"
-# }
-
-
 resource "aws_apigatewayv2_api" "lambda" {
   name          = "api-gateway-ton"
   protocol_type = "HTTP"
@@ -115,8 +67,8 @@ EOF
 
 data "archive_file" "lambda_zip" {
   type        = "zip"
-  source_file = "./src/handler/IncrementPeople.js"
-  output_path = "increment_lambda_function.zip"
+  source_dir  = "${path.module}/dist"
+  output_path = "nodejs.zip"
 }
 
 resource "aws_cloudwatch_log_group" "increment_lambda" {
@@ -125,10 +77,10 @@ resource "aws_cloudwatch_log_group" "increment_lambda" {
 }
 
 resource "aws_lambda_function" "increment_lambda" {
-  filename         = "increment_lambda_function.zip"
+  filename         = "nodejs.zip"
   function_name    = "increment_lambda"
   role             = aws_iam_role.iam_for_lambda.arn
-  handler          = "dist/src/handler/IncrementPeopleHandler.handler"
+  handler          = "handler/IncrementPeopleHandler.incrementPeople"
   source_code_hash = data.archive_file.lambda_zip.output_base64sha256
   runtime          = "nodejs14.x"
 }
@@ -145,11 +97,41 @@ resource "aws_apigatewayv2_integration" "increment_lambda" {
 resource "aws_apigatewayv2_route" "increment_lambda" {
   api_id = aws_apigatewayv2_api.lambda.id
 
-  route_key = "GET /hello"
+  route_key = "POST /increment"
   target    = "integrations/${aws_apigatewayv2_integration.increment_lambda.id}"
 }
 
 
+
+resource "aws_cloudwatch_log_group" "get_access_lambda" {
+  name              = "/aws/lambda/${aws_lambda_function.get_access_lambda.function_name}"
+  retention_in_days = 30
+}
+
+resource "aws_lambda_function" "get_access_lambda" {
+  filename         = "nodejs.zip"
+  function_name    = "get_access_lambda"
+  role             = aws_iam_role.iam_for_lambda.arn
+  handler          = "handler/GetTotalHandler.getTotalHandler"
+  source_code_hash = data.archive_file.lambda_zip.output_base64sha256
+  runtime          = "nodejs14.x"
+}
+
+
+resource "aws_apigatewayv2_integration" "get_access_lambda" {
+  api_id = aws_apigatewayv2_api.lambda.id
+
+  integration_uri    = aws_lambda_function.get_access_lambda.invoke_arn
+  integration_type   = "AWS_PROXY"
+  integration_method = "POST"
+}
+
+resource "aws_apigatewayv2_route" "get_access_lambda" {
+  api_id = aws_apigatewayv2_api.lambda.id
+
+  route_key = "GET  /value/:namespace/:key"
+  target    = "integrations/${aws_apigatewayv2_integration.increment_lambda.id}"
+}
 
 
 
