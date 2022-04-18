@@ -129,10 +129,71 @@ resource "aws_apigatewayv2_integration" "get_access_lambda" {
 resource "aws_apigatewayv2_route" "get_access_lambda" {
   api_id = aws_apigatewayv2_api.lambda.id
 
-  route_key = "GET  /value/:namespace/:key"
-  target    = "integrations/${aws_apigatewayv2_integration.increment_lambda.id}"
+  route_key = "GET /acess/{namespace}/{key}"
+  target    = "integrations/${aws_apigatewayv2_integration.get_access_lambda.id}"
 }
 
+resource "aws_cloudwatch_log_group" "create_users" {
+  name              = "/aws/lambda/${aws_lambda_function.create_users.function_name}"
+  retention_in_days = 30
+}
+
+resource "aws_lambda_function" "create_users" {
+  filename         = "nodejs.zip"
+  function_name    = "create_users"
+  role             = aws_iam_role.iam_for_lambda.arn
+  handler          = "handler/CreateUserHandler.createUser"
+  source_code_hash = data.archive_file.lambda_zip.output_base64sha256
+  runtime          = "nodejs14.x"
+}
+
+
+resource "aws_apigatewayv2_integration" "create_users" {
+  api_id = aws_apigatewayv2_api.lambda.id
+
+  integration_uri    = aws_lambda_function.create_users.invoke_arn
+  integration_type   = "AWS_PROXY"
+  integration_method = "POST"
+}
+
+resource "aws_apigatewayv2_route" "create_users" {
+  api_id = aws_apigatewayv2_api.lambda.id
+
+  route_key = "POST /user"
+  target    = "integrations/${aws_apigatewayv2_integration.get_access_lambda.id}"
+}
+
+
+
+resource "aws_cloudwatch_log_group" "get_users" {
+  name              = "/aws/lambda/${aws_lambda_function.get_users.function_name}"
+  retention_in_days = 30
+}
+
+resource "aws_lambda_function" "get_users" {
+  filename         = "nodejs.zip"
+  function_name    = "get_users"
+  role             = aws_iam_role.iam_for_lambda.arn
+  handler          = "handler/GetUserHandler.getUser"
+  source_code_hash = data.archive_file.lambda_zip.output_base64sha256
+  runtime          = "nodejs14.x"
+}
+
+
+resource "aws_apigatewayv2_integration" "get_users" {
+  api_id = aws_apigatewayv2_api.lambda.id
+
+  integration_uri    = aws_lambda_function.get_users.invoke_arn
+  integration_type   = "AWS_PROXY"
+  integration_method = "POST"
+}
+
+resource "aws_apigatewayv2_route" "get_users" {
+  api_id = aws_apigatewayv2_api.lambda.id
+
+  route_key = "GET /user/{email}"
+  target    = "integrations/${aws_apigatewayv2_integration.get_access_lambda.id}"
+}
 
 
 resource "aws_lambda_permission" "ton_api" {
@@ -142,6 +203,27 @@ resource "aws_lambda_permission" "ton_api" {
   principal     = "apigateway.amazonaws.com"
 
   source_arn = "${aws_apigatewayv2_api.lambda.execution_arn}/*/*"
+}
+
+
+resource "aws_dynamodb_table" "user_tablee" {
+  name           = "Users"
+  billing_mode   = "PROVISIONED"
+  read_capacity  = 20
+  write_capacity = 20
+  hash_key       = "email"
+  range_key      = "key"
+
+  attribute {
+    name = "email"
+    type = "S"
+  }
+
+  attribute {
+    name = "key"
+    type = "S"
+  }
+
 }
 
 
